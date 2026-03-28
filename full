@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Скрипт переписки — Shanyraq</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Unbounded:wght@400;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f8f9fa;
+    --surface2: #e9ecef;
+    --border: #dee2e6;
+    --accent: #007bff;
+    --accent2: #6f42c1;
+    --gold: #ffc107;
+    --green: #28a745;
+    --red: #dc3545;
+    --purple: #6f42c1;
+    --text: #212529;
+    --muted: #6c757d;
+    --dimmed: #495057;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+
+  .header-tag {
+    background: rgba(0,123,255,0.15);
+    border: 1px solid rgba(0,123,255,0.3);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .header-sub {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 80px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .sidebar-title {
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 0 20px 12px;
+  }
+
+  .nav-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--dimmed);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: rgba(0,123,255,0.08);
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-dot { background: var(--accent); }
+
+  .nav-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* MAIN */
+  .main {
+    padding: 40px;
+    max-width: 900px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 48px;
+    scroll-margin-top: 100px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .section-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .section-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* STEP BLOCK */
+  .step-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .step-label {
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 16px 0;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .step-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  .step-label.send::before { background: var(--accent); }
+  .step-label.receive::before { background: var(--purple); }
+  .step-label.note::before { background: var(--gold); }
+  .step-label.action::before { background: var(--green); }
+
+  .step-content {
+    padding: 12px 16px 16px;
+  }
+
+  /* BUBBLE */
+  .bubble {
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.65;
+    position: relative;
+    max-width: 520px;
+  }
+
+  .bubble.out {
+    background: linear-gradient(135deg, rgba(0,123,255,0.18), rgba(0,123,255,0.08));
+    border: 1px solid rgba(0,123,255,0.25);
+    margin-left: auto;
+    margin-right: 0;
+    color: var(--text);
+  }
+
+  .bubble.in {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--dimmed);
+    font-style: italic;
+  }
+
+  .bubble.system {
+    background: rgba(255,193,7,0.07);
+    border: 1px solid rgba(255,193,7,0.2);
+    color: var(--text);
+    font-size: 13px;
+    max-width: 100%;
+  }
+
+  .bubble em {
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  .bubble strong {
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* VARIANTS */
+  .variants-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 14px 0 8px;
+  }
+
+  .variant-tag {
+    display: inline-block;
+    background: rgba(201, 124, 245, 0.1);
+    border: 1px solid rgba(201, 124, 245, 0.25);
+    color: var(--purple);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    margin: 3px 3px 3px 0;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* OBJECTION CARD */
+  .obj-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .obj-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .obj-question {
+    font-size: 13px;
+    color: var(--red);
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .obj-answer {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.65;
+    background: rgba(0,123,255,0.08);
+    border: 1px solid rgba(0,123,255,0.15);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .obj-answer + .obj-answer {
+    margin-top: 8px;
+  }
+
+  /* TARIFF CARD */
+  .tariff-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 8px;
+  }
+
+  .tariff-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .tariff-card.highlight {
+    background: rgba(0,123,255,0.1);
+    border-color: rgba(0,123,255,0.4);
+  }
+
+  .tariff-name {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .tariff-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .tip-box {
+    background: rgba(40, 167, 69, 0.06);
+    border: 1px solid rgba(40, 167, 69, 0.2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--green);
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .tip-icon { flex-shrink: 0; }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,123,255,0.1);
+    border: 1px solid rgba(0,123,255,0.2);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 8px;
+    transition: all 0.15s;
+    float: right;
+  }
+  .copy-btn:hover { background: rgba(0,123,255,0.2); }
+
+  /* STATUS BADGE */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge.green { background: rgba(46,204,143,0.15); color: var(--green); }
+  .badge.gold { background: rgba(255,193,7,0.15); color: var(--gold); }
+  .badge.blue { background: rgba(0,123,255,0.15); color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main { padding: 20px; }
+    .obj-grid, .tariff-grid { grid-template-columns: 1fr; }
+    .header { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">SHANYRAQ 🇰🇿</div>
+  <div class="header-tag">Скрипт переписки</div>
+  <div class="header-sub">Курсы казахского языка</div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-title">Этапы скрипта</div>
+
+    <div class="nav-item active" onclick="scrollTo('s1')">
+      <div class="nav-dot"></div> 1. Первое касание
+    </div>
+    <div class="nav-item" onclick="scrollTo('s2')">
+      <div class="nav-dot"></div> 2. Квалификация
+    </div>
+    <div class="nav-item" onclick="scrollTo('s3')">
+      <div class="nav-dot"></div> 3. Выявление боли
+    </div>
+    <div class="nav-item" onclick="scrollTo('s4')">
+      <div class="nav-dot"></div> 4. Презентация
+    </div>
+    <div class="nav-item" onclick="scrollTo('s5')">
+      <div class="nav-dot"></div> 5. Оффер и тарифы
+    </div>
+    <div class="nav-item" onclick="scrollTo('s6')">
+      <div class="nav-dot"></div> 6. Закрытие / оплата
+    </div>
+
+    <div class="nav-section">
+      <div class="sidebar-title">Работа с клиентом</div>
+      <div class="nav-item" onclick="scrollTo('s7')">
+        <div class="nav-dot"></div> Возражения
+      </div>
+      <div class="nav-item" onclick="scrollTo('s8')">
+        <div class="nav-dot"></div> Нет ответа / отложил
+      </div>
+      <div class="nav-item" onclick="scrollTo('s9')">
+        <div class="nav-dot"></div> Советы по тону
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- SECTION 1 -->
+    <div class="section" id="s1">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(59,91,252,0.15);">👋</div>
+        <div>
+          <div class="section-title">1. Первое касание</div>
+          <div class="section-sub">Клиент оставил заявку — пишем первыми, быстро и тепло</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Отправляем</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Тимур, здравствуйте! 👋<br>
+            Это Ибрахим из Shanyraq — курсы казахского языка 🇰🇿<br><br>
+            Вы оставили заявку, чтобы я подобрал для вас подходящий формат — удобнее будет созвониться на 5–7 минут 🙌🏻<br><br>
+            Подскажите, когда вам будет удобно поговорить?
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label receive">Клиент отвечает</div>
+        <div class="step-content">
+          <div class="bubble in">— Удобнее по переписке</div>
+          <div style="margin-top:12px"></div>
+          <div class="bubble in">— Сейчас не могу говорить, напишите</div>
+          <div style="margin-top:12px"></div>
+          <div class="bubble in">— Лучше в WhatsApp / Telegram</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Переходим в переписку</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Отлично, тогда здесь! 😊<br>
+            Подскажите, [Имя] — обучение рассматриваете для себя?
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div><strong style="color:#2ecc8f">Важно:</strong> Первый ответ отправляем в течение 5–15 минут после заявки. Чем быстрее — тем выше конверсия. Тон — живой, не как шаблон колл-центра.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 2 -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(162,89,255,0.12);">🎯</div>
+        <div>
+          <div class="section-title">2. Квалификация</div>
+          <div class="section-sub">Узнаём — кто перед нами и на каком уровне</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Вопрос 1 — Для кого</div>
+        <div class="step-content">
+          <div class="bubble out">
+            [Имя], обучение для себя рассматриваете?
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Вопрос 2 — Уровень языка</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Отлично 👍<br>
+            Несколько уточняющих вопросов задам:<br>
+            Как у Вас сейчас дела с казахским? Говорите/понимаете или начальный уровень?
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label note">Типичные ответы клиентов</div>
+        <div class="step-content">
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <span class="badge blue">С нуля</span>
+            <span class="badge blue">Понимаю, но не говорю</span>
+            <span class="badge blue">Базовые слова знаю</span>
+            <span class="badge gold">Читаю, но не говорю</span>
+            <span class="badge gold">Средний уровень</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 3 -->
+    <div class="section" id="s3">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(245,200,66,0.1);">🔍</div>
+        <div>
+          <div class="section-title">3. Выявление боли и мотивации</div>
+          <div class="section-sub">Почему сейчас? Что мешало раньше?</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Вопрос о цели</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Понял вас.<br>
+            А в каких ситуациях сейчас по большей части не хватает казахского? Где в основном с ним сталкиваетесь?
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label note">Болевые точки → что отвечать</div>
+        <div class="step-content">
+          <div class="obj-grid">
+            <div class="obj-card">
+              <div class="obj-question">💼 Работа / карьера</div>
+              <div class="obj-answer">
+                Понял, работа — это сильная мотивация. В рабочей среде казахский очень помогает — и в общении с коллегами, и для карьерного роста. Мы как раз делаем упор на разговорный язык с деловым уклоном.
+              </div>
+            </div>
+            <div class="obj-card">
+              <div class="obj-question">👨‍👩‍👧 Семья / родственники</div>
+              <div class="obj-answer">
+                Это очень частая и тёплая причина 😊 Когда начинаешь говорить с семьёй на казахском — отношения совсем по-другому чувствуются. У нас много учеников именно с такой мотивацией.
+              </div>
+            </div>
+            <div class="obj-card">
+              <div class="obj-question">🌍 Самореализация / культура</div>
+              <div class="obj-answer">
+                Уважаю такой подход! Казахский — живой и богатый язык. Понимать культуру изнутри — это совсем другой уровень.
+              </div>
+            </div>
+            <div class="obj-card">
+              <div class="obj-question">📋 Экзамен / переезд</div>
+              <div class="obj-answer">
+                Хорошо, это конкретная цель — с ней мы работаем системно. Подберём формат, который даст результат к нужному сроку.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 4 -->
+    <div class="section" id="s4">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(46,204,143,0.1);">🎓</div>
+        <div>
+          <div class="section-title">4. Презентация программы</div>
+          <div class="section-sub">Отвечаем на вопрос "что вы даёте" — коротко и убедительно</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Презентация (основная)</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Спасибо за подробную обратную связь 👍<br><br>
+            По программе есть 3 пакета на выбор. Исходя из вашей ситуации Вам идеально подойдёт формат <strong>Бизнес</strong> <em>(либо Премиум как сами считаете)</em>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Что даёт Shanyraq (видео + текст)</div>
+        <div class="step-content">
+          <div class="bubble system">
+            📎 Отправляем видео-презентацию <strong>+ следом пишем:</strong>
+          </div>
+          <div class="bubble out" style="margin-top:10px">
+            <strong>С чем Shanyraq помогает:</strong><br>
+            🗣 Развить разговорный казахский с нуля или с текущего уровня<br>
+            💬 Начать уверенно говорить в бытовых ситуациях и на работе<br>
+            🧠 Убрать психологический барьер и страх говорить<br>
+            🔄 Перестать переводить в голове и начать говорить на казахском без паузы
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label action">После видео — уточняем</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Как вам?
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 5 -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(59,91,252,0.12);">💳</div>
+        <div>
+          <div class="section-title">5. Оффер и тарифы</div>
+          <div class="section-sub">Презентуем пакеты и направляем к нужному</div>
+        </div>
+      </div>
+
+      <div class="tariff-grid">
+        <div class="tariff-card">
+          <div class="tariff-name">Старт</div>
+          <div class="tariff-desc">Базовый формат для старта. Хорошо подходит, если бюджет ограничен или хочется попробовать.</div>
+        </div>
+        <div class="tariff-card highlight">
+          <div class="tariff-name">🏆 Бизнес</div>
+          <div class="tariff-desc">Оптимальный выбор. Рекомендуем большинству — результат без перегруза.</div>
+        </div>
+        <div class="tariff-card">
+          <div class="tariff-name">Премиум</div>
+          <div class="tariff-desc">Максимальный формат. Для тех, кто хочет результат быстрее всего.</div>
+        </div>
+      </div>
+
+      <div class="step-block" style="margin-top:20px">
+        <div class="step-label send">Отправляем тарифы</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Вот ссылка на договор с тарифами: <strong>shanyraqstudy.kz/business-4months-20minutes</strong><br><br>
+            Там подробно расписано что входит в каждый пакет — посмотрите, если будут вопросы — напишите 🙌
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 6 -->
+    <div class="section" id="s6">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(46,204,143,0.12);">✅</div>
+        <div>
+          <div class="section-title">6. Закрытие и оплата</div>
+          <div class="section-sub">Ведём клиента к решению — мягко, без давления</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">После просмотра тарифов</div>
+        <div class="step-content">
+          <div class="bubble out">
+            [Имя], посмотрели? Какой вариант вам ближе?
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Если выбрал тариф — к оплате</div>
+        <div class="step-content">
+          <div class="bubble out">
+            Отлично! 🎉<br>
+            Для оформления нужны ваши данные:<br>
+            — ФИО<br>
+            — Номер телефона<br>
+            — Email<br><br>
+            После этого пришлю реквизиты для оплаты 👌
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Пробный урок (если клиент сомневается)</div>
+        <div class="step-content">
+          <div class="bubble out">
+            [Имя], если хотите — можем записать вас на пробный урок, чтобы вы сначала познакомились с форматом. Без обязательств 🙌<br>
+            Как вам такой вариант?
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div>Если клиент говорит "подумаю" — не давим. Уточняем: "Что именно хотите обдумать? Может, есть вопрос, который я не раскрыл?" — часто это выводит на настоящее возражение.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 7 -->
+    <div class="section" id="s7">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(255,92,92,0.1);">🛡️</div>
+        <div>
+          <div class="section-title">7. Работа с возражениями</div>
+          <div class="section-sub">Готовые ответы на типичные "нет"</div>
+        </div>
+      </div>
+
+      <div class="obj-grid">
+
+        <div class="obj-card">
+          <div class="obj-question">❌ "Дорого"</div>
+          <div class="obj-answer">
+            [Имя], понимаю вас. Давайте посмотрим на это так — это не трата, а инвестиция в ваши возможности. Казахский открывает двери — на работе, в общении, в карьере.<br><br>
+            Кстати, у нас есть рассрочка — можем разбить платёж. Так будет удобнее?
+          </div>
+          <div class="obj-answer" style="margin-top:8px">
+            А если сравнить с репетитором, у нас выходит в несколько раз дешевле при том же результате. Плюс системная методика, а не разрозненные уроки.
+          </div>
+        </div>
+
+        <div class="obj-card">
+          <div class="obj-question">❌ "Нет времени"</div>
+          <div class="obj-answer">
+            Наш формат и создан для занятых людей — 20 минут в день, всё. Никаких многочасовых сессий.<br><br>
+            20 минут — это даже меньше, чем обеденный перерыв. Многие наши ученики занимаются по дороге на работу или вечером перед сном 🙌
+          </div>
+        </div>
+
+        <div class="obj-card">
+          <div class="obj-question">❌ "Пробовал раньше — не пошло"</div>
+          <div class="obj-answer">
+            Я вас понимаю, это частая история. Обычно не идёт из-за неправильного подхода — зубрёжка правил, нет практики говорения.<br><br>
+            У нас всё наоборот — с первого урока разговариваете, не учите грамматику. Именно поэтому у нас столько учеников, которые пробовали раньше и у них не получалось.
+          </div>
+        </div>
+
+        <div class="obj-card">
+          <div class="obj-question">❌ "Подумаю / не сейчас"</div>
+          <div class="obj-answer">
+            Конечно, не тороплю 🙌 Подскажите — что именно хотите обдумать? Может, есть вопрос, который я не раскрыл — с удовольствием отвечу.
+          </div>
+          <div class="obj-answer" style="margin-top:8px">
+            Хорошо, возьмите время. Напишите, когда будете готовы — я здесь 😊 Если хотите, могу прислать отзывы учеников — поможет с решением?
+          </div>
+        </div>
+
+        <div class="obj-card">
+          <div class="obj-question">❌ "Есть другие предложения"</div>
+          <div class="obj-answer">
+            Разумно сравнивать 👍 Скажите, что именно смотрите ещё — я смогу рассказать, чем мы отличаемся, и вы сами решите, что лучше для вас.
+          </div>
+        </div>
+
+        <div class="obj-card">
+          <div class="obj-question">❌ "А результат гарантирован?"</div>
+          <div class="obj-answer">
+            Результат зависит от вас на 50% — если заниматься регулярно, он будет. Мы со своей стороны даём структуру, методику и поддержку.<br><br>
+            У нас сотни учеников, которые начали с нуля и теперь говорят свободно — можем показать отзывы 📩
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 8 -->
+    <div class="section" id="s8">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(245,200,66,0.1);">⏳</div>
+        <div>
+          <div class="section-title">8. Нет ответа / отложил решение</div>
+          <div class="section-sub">Как напоминать — без навязчивости</div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Через 1 день — мягкий дожим</div>
+        <div class="step-content">
+          <div class="bubble out">
+            [Имя], добрый день! 👋<br>
+            Вы смотрели программу — как впечатление? Есть ли вопросы, которые не успел раскрыть?
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Через 3 дня — ценность + повод</div>
+        <div class="step-content">
+          <div class="bubble out">
+            [Имя], привет! 🙌<br>
+            Хотел напомнить — мы набираем группу, стартуем [дата]. Места ограничены.<br>
+            Если решитесь — лучше оформить сейчас, чтобы точно попасть на поток.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-label send">Через 7 дней — финальный</div>
+        <div class="step-content">
+          <div class="bubble out">
+            [Имя], не хочу мешать — просто последний раз уточню 😊<br>
+            Если сейчас не актуально — скажите, занесу вас в список на следующий поток. Напомню, когда начнём набор.
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon">⚡</div>
+        <div>Правило трёх касаний: 1 день → 3 дня → 7 дней. После третьего — не пишем, пока сами не напишут. Уважаем пространство клиента.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 9 -->
+    <div class="section" id="s9">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(162,89,255,0.12);">✨</div>
+        <div>
+          <div class="section-title">9. Советы по тону переписки</div>
+          <div class="section-sub">Как писать, чтобы хотели отвечать</div>
+        </div>
+      </div>
+
+      <div class="obj-grid">
+        <div class="obj-card">
+          <div class="obj-question" style="color: var(--green);">✅ Делаем</div>
+          <div class="obj-answer">
+            Пишем живо — как другу, не как в банке<br><br>
+            Один вопрос за раз — не заваливаем<br><br>
+            Слушаем и отвечаем на боль — не по шаблону<br><br>
+            Используем имя клиента<br><br>
+            Эмодзи — умеренно, для живости 😊
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-question">❌ Избегаем</div>
+          <div class="obj-answer">
+            Шаблонных фраз типа "Ваша заявка принята в обработку"<br><br>
+            Трёх вопросов подряд<br><br>
+            Давления и срочности без повода<br><br>
+            Длинных монологов без вопроса в конце<br><br>
+            Игнорирования того, что сказал клиент
+          </div>
+        </div>
+      </div>
+
+      <div class="tip-box" style="margin-top:16px">
+        <div class="tip-icon">🎯</div>
+        <div><strong style="color:#2ecc8f">Главный принцип:</strong> Каждое сообщение должно вести к следующему шагу. Заканчивай либо вопросом, либо чётким призывом к действию — никогда просто "информацией".</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function scrollTo(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+}
+
+// Auto-highlight nav on scroll
+const sections = document.querySelectorAll('.section');
+const navItems = document.querySelectorAll('.nav-item');
+
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 120) current = s.id;
+  });
+  navItems.forEach(n => {
+    n.classList.remove('active');
+    if (n.getAttribute('onclick')?.includes(current)) n.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
